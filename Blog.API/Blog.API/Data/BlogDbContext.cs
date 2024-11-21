@@ -7,6 +7,8 @@ namespace Blog.API.Data
     {
         public DbSet<User> Users { get; set; }
         
+        public DbSet<Tag> Tags { get; set; }
+        
         public DbSet<TokenBlackList> TokenBlackList { get; set; }
         
         public BlogDbContext(DbContextOptions<BlogDbContext> options) : base(options)

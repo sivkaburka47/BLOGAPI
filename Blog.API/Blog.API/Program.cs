@@ -54,6 +54,7 @@ builder.Services.AddDbContext<BlogDbContext>(options => options.UseNpgsql(builde
 
 //services
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<ITokenBlackListService, TokenBlackListService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtProvider, JwtProvider>();

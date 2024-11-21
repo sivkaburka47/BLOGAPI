@@ -22,6 +22,24 @@ namespace Blog.API.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Blog.API.Models.DB.Tag", b =>
+                {
+                    b.Property<Guid>("id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("createTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("id");
+
+                    b.ToTable("Tags");
+                });
+
             modelBuilder.Entity("Blog.API.Models.DB.TokenBlackList", b =>
                 {
                     b.Property<Guid>("id")
