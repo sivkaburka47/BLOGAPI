@@ -13,5 +13,8 @@ namespace Blog.API.Models.DB
         public string phoneNumber { get; set; }
         public string passwordHash { get; set; }
         
+        public List<Post> posts { get; set; }
+        
+        public List<Like> likes { get; set; }
     }
 }

@@ -12,30 +12,6 @@ namespace Blog.API.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Posts",
-                columns: table => new
-                {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
-                    createTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    title = table.Column<string>(type: "text", nullable: false),
-                    description = table.Column<string>(type: "text", nullable: false),
-                    readingTime = table.Column<int>(type: "integer", nullable: false),
-                    image = table.Column<string>(type: "text", nullable: false),
-                    authorId = table.Column<Guid>(type: "uuid", nullable: false),
-                    author = table.Column<string>(type: "text", nullable: false),
-                    communityId = table.Column<Guid>(type: "uuid", nullable: true),
-                    communityName = table.Column<string>(type: "text", nullable: false),
-                    addressId = table.Column<Guid>(type: "uuid", nullable: true),
-                    likes = table.Column<int>(type: "integer", nullable: false),
-                    hasLike = table.Column<bool>(type: "boolean", nullable: false),
-                    commentsCount = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Posts", x => x.id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Tags",
                 columns: table => new
                 {
@@ -80,6 +56,59 @@ namespace Blog.API.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Posts",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    createTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    title = table.Column<string>(type: "text", nullable: false),
+                    description = table.Column<string>(type: "text", nullable: false),
+                    readingTime = table.Column<int>(type: "integer", nullable: false),
+                    image = table.Column<string>(type: "text", nullable: true),
+                    authorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    communityId = table.Column<Guid>(type: "uuid", nullable: true),
+                    communityName = table.Column<string>(type: "text", nullable: true),
+                    addressId = table.Column<Guid>(type: "uuid", nullable: true),
+                    hasLike = table.Column<bool>(type: "boolean", nullable: false),
+                    commentsCount = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Posts", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_Posts_Users_authorId",
+                        column: x => x.authorId,
+                        principalTable: "Users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Likes",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    postId = table.Column<Guid>(type: "uuid", nullable: false),
+                    userId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Likes", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_Likes_Posts_postId",
+                        column: x => x.postId,
+                        principalTable: "Posts",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Likes_Users_userId",
+                        column: x => x.userId,
+                        principalTable: "Users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PostTag",
                 columns: table => new
                 {
@@ -104,6 +133,21 @@ namespace Blog.API.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Likes_postId",
+                table: "Likes",
+                column: "postId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Likes_userId",
+                table: "Likes",
+                column: "userId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Posts_authorId",
+                table: "Posts",
+                column: "authorId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PostTag_tagsid",
                 table: "PostTag",
                 column: "tagsid");
@@ -113,19 +157,22 @@ namespace Blog.API.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "Likes");
+
+            migrationBuilder.DropTable(
                 name: "PostTag");
 
             migrationBuilder.DropTable(
                 name: "TokenBlackList");
 
             migrationBuilder.DropTable(
-                name: "Users");
-
-            migrationBuilder.DropTable(
                 name: "Posts");
 
             migrationBuilder.DropTable(
                 name: "Tags");
+
+            migrationBuilder.DropTable(
+                name: "Users");
         }
     }
 }

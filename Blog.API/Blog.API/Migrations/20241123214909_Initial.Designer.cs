@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Blog.API.Migrations
 {
     [DbContext(typeof(BlogDbContext))]
-    [Migration("20241121122528_Initial")]
+    [Migration("20241123214909_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -25,6 +25,27 @@ namespace Blog.API.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Blog.API.Models.DB.Like", b =>
+                {
+                    b.Property<Guid>("id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("postId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("userId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("id");
+
+                    b.HasIndex("postId");
+
+                    b.HasIndex("userId");
+
+                    b.ToTable("Likes");
+                });
+
             modelBuilder.Entity("Blog.API.Models.DB.Post", b =>
                 {
                     b.Property<Guid>("id")
@@ -33,10 +54,6 @@ namespace Blog.API.Migrations
 
                     b.Property<Guid?>("addressId")
                         .HasColumnType("uuid");
-
-                    b.Property<string>("author")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<Guid>("authorId")
                         .HasColumnType("uuid");
@@ -48,7 +65,6 @@ namespace Blog.API.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("communityName")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("createTime")
@@ -62,11 +78,7 @@ namespace Blog.API.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<string>("image")
-                        .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int>("likes")
-                        .HasColumnType("integer");
 
                     b.Property<int>("readingTime")
                         .HasColumnType("integer");
@@ -76,6 +88,8 @@ namespace Blog.API.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("id");
+
+                    b.HasIndex("authorId");
 
                     b.ToTable("Posts");
                 });
@@ -167,6 +181,36 @@ namespace Blog.API.Migrations
                     b.ToTable("PostTag");
                 });
 
+            modelBuilder.Entity("Blog.API.Models.DB.Like", b =>
+                {
+                    b.HasOne("Blog.API.Models.DB.Post", "post")
+                        .WithMany("likes")
+                        .HasForeignKey("postId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Blog.API.Models.DB.User", "user")
+                        .WithMany("likes")
+                        .HasForeignKey("userId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("post");
+
+                    b.Navigation("user");
+                });
+
+            modelBuilder.Entity("Blog.API.Models.DB.Post", b =>
+                {
+                    b.HasOne("Blog.API.Models.DB.User", "author")
+                        .WithMany("posts")
+                        .HasForeignKey("authorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("author");
+                });
+
             modelBuilder.Entity("PostTag", b =>
                 {
                     b.HasOne("Blog.API.Models.DB.Post", null)
@@ -180,6 +224,18 @@ namespace Blog.API.Migrations
                         .HasForeignKey("tagsid")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Blog.API.Models.DB.Post", b =>
+                {
+                    b.Navigation("likes");
+                });
+
+            modelBuilder.Entity("Blog.API.Models.DB.User", b =>
+                {
+                    b.Navigation("likes");
+
+                    b.Navigation("posts");
                 });
 #pragma warning restore 612, 618
         }

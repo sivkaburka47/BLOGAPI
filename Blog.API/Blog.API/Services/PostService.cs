@@ -3,6 +3,7 @@ using Blog.API.Data;
 using Blog.API.Middleware;
 using Blog.API.Models.DB;
 using Blog.API.Models.DTOs;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +21,12 @@ namespace Blog.API.Services
             [FromQuery] int page,
             [FromQuery] int size,
             ClaimsPrincipal user);
+
+        Task<Guid> CreatePost(CreatePostDto model, ClaimsPrincipal user);
+        Task<PostFullDto> GetConcretePost(Guid postId, ClaimsPrincipal user);
+
+        Task<IActionResult> LikeConcretePost(Guid postId, ClaimsPrincipal user);
+        Task<IActionResult> DeleteLikeConcretePost(Guid postId, ClaimsPrincipal user);
     }
 
     public class PostService : IPostService
@@ -59,12 +66,15 @@ namespace Blog.API.Services
             
             var query = _context.Posts
                 .Include(p => p.tags)
+                .Include(p => p.likes)
                 .AsQueryable();
             
             if (!string.IsNullOrEmpty(author))
             {
-                query = query.Where(post => post.author == author);
+                query = query.Include(p => p.author)
+                    .Where(post => post.author.fullName == author);
             }
+
             
             if (min > 0)
             {
@@ -90,10 +100,10 @@ namespace Blog.API.Services
                     query = query.OrderBy(post => post.createTime);
                     break;
                 case PostSorting.LikeAsc:
-                    query = query.OrderBy(post => post.likes);
+                    query = query.OrderBy(post => post.likes.Count());
                     break;
                 case PostSorting.LikeDesc:
-                    query = query.OrderByDescending(post => post.likes);
+                    query = query.OrderByDescending(post => post.likes.Count());
                     break;
             }
             
@@ -113,12 +123,12 @@ namespace Blog.API.Services
                 readingTime = post.readingTime,
                 image = post.image,
                 authorId = post.authorId,
-                author = post.author,
+                author = post.author.fullName,
                 communityId = post.communityId,
                 communityName = post.communityName,
                 addressId = post.addressId,
-                likes = post.likes,
-                hasLike = post.hasLike,
+                likes = post.likes.Count(),
+                hasLike =  post.likes.Any(like => like.userId == userdb.id),
                 commentsCount = post.commentsCount,
                 tags = post.tags?.Select(tag => new TagDto
                 {
@@ -127,6 +137,7 @@ namespace Blog.API.Services
                     name = tag.name
                 }).ToList()
             }).ToList();
+
             
             var pageInfo = new PageInfoModel
             {
@@ -146,5 +157,177 @@ namespace Blog.API.Services
                 pagination = pageInfo
             };
         }
+
+        public async Task<Guid> CreatePost(CreatePostDto model, ClaimsPrincipal user)
+        {
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null || !Guid.TryParse(userId, out var parsedId))
+            {
+                throw new UnauthorizedAccessException();
+            }
+
+            var userdb = await _context.Users
+                .FirstOrDefaultAsync(d => d.id == parsedId);
+
+            var post = new Post
+            {
+                createTime = DateTime.UtcNow,
+                title = model.title,
+                description = model.description,
+                readingTime = model.readingTime,
+                image = model.image,
+                authorId = userdb.id,
+                author = userdb,
+                addressId = model.addressId,
+                tags = new List<Tag>()
+                
+            };
+            
+            var existingTags = await _context.Tags
+                .Where(t => model.tags.Contains(t.id))
+                .ToListAsync();
+            
+            var missingTagIds = model.tags.Except(existingTags.Select(t => t.id)).ToList();
+            if (missingTagIds.Any())
+            {
+                var firstMissingTagId = missingTagIds.First();
+                throw new KeyNotFoundException($"Tag Id={firstMissingTagId} does not found");
+            }
+            
+            post.tags.AddRange(existingTags);
+            
+            _context.Posts.Add(post);
+            
+            await _context.SaveChangesAsync();
+
+            return post.id;
+        }
+
+        public async Task<PostFullDto> GetConcretePost(Guid postId, ClaimsPrincipal user)
+        {
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null || !Guid.TryParse(userId, out var parsedId))
+            {
+                throw new UnauthorizedAccessException();
+            }
+
+            var userdb = await _context.Users
+                .FirstOrDefaultAsync(d => d.id == parsedId);
+            
+            
+            var post = await _context.Posts
+                .Include(p => p.tags)
+                .Include(p => p.likes)
+                .FirstOrDefaultAsync(p => p.id == postId);
+
+
+            if (post == null)
+            {
+                throw new KeyNotFoundException($"Post with id {postId} not found.");
+            }
+
+            var postFullDto = new PostFullDto
+            {
+                id = post.id,
+                title = post.title,
+                createTime = post.createTime,
+                description = post.description,
+                readingTime = post.readingTime,
+                image = post.image,
+                authorId = post.authorId,
+                author = post.author.fullName,
+                communityId = post.communityId,
+                communityName = post.communityName,
+                addressId = post.addressId,
+                likes = post.likes.Count(),
+                hasLike = post.hasLike,
+                commentsCount = post.commentsCount,
+                tags = post.tags.Select(t => new TagDto
+                {
+                    id = t.id,
+                    createTime = t.createTime,
+                    name = t.name
+                }).ToList()
+            };
+            return postFullDto;
+        }
+        
+        public async Task<IActionResult> LikeConcretePost(Guid postId, ClaimsPrincipal user)
+        {
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null || !Guid.TryParse(userId, out var parsedId))
+            {
+                throw new UnauthorizedAccessException();
+            }
+        
+            var userdb = await _context.Users
+                .FirstOrDefaultAsync(d => d.id == parsedId);
+            
+            
+            var post = await _context.Posts
+                .Include(p => p.likes)
+                .FirstOrDefaultAsync(p => p.id == postId);
+        
+            if (post == null)
+            {
+                throw new KeyNotFoundException($"Post with id {postId} not found.");
+            }
+            
+            var existingLike = post.likes.FirstOrDefault(like => like.userId == parsedId);
+
+            if (existingLike != null)
+            {
+                throw new ValidationAccessException("Like on this post already set by user" );
+            }
+            
+            var like = new Like
+            {
+                postId = post.id,
+                userId = userdb.id
+            };
+
+            _context.Likes.Add(like);
+            await _context.SaveChangesAsync();
+            
+            return null;
+        }
+        
+        public async Task<IActionResult> DeleteLikeConcretePost(Guid postId, ClaimsPrincipal user)
+        {
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null || !Guid.TryParse(userId, out var parsedId))
+            {
+                throw new UnauthorizedAccessException();
+            }
+            
+            var userdb = await _context.Users
+                .FirstOrDefaultAsync(d => d.id == parsedId);
+            if (userdb == null)
+            {
+                throw new UnauthorizedAccessException("User not found.");
+            }
+            
+            var post = await _context.Posts
+                .Include(p => p.likes)
+                .FirstOrDefaultAsync(p => p.id == postId);
+
+            if (post == null)
+            {
+                throw new KeyNotFoundException($"Post with id {postId} not found.");
+            }
+            
+            var existingLike = post.likes.FirstOrDefault(like => like.userId == parsedId);
+
+            if (existingLike == null)
+            {
+                throw new ValidationAccessException("Like on this post not found for the user.");
+            }
+            
+            _context.Likes.Remove(existingLike);
+            await _context.SaveChangesAsync();
+            
+            return null;
+        }
+
     }
 }
