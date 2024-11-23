@@ -7,6 +7,8 @@ namespace Blog.API.Models.DB
         public DateTime createTime { get; set; }
     
         public string name { get; set; }
+        
+        public List<Post>? posts { get; set; }
     }
 }
 

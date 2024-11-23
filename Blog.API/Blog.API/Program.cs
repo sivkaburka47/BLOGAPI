@@ -53,6 +53,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<BlogDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 //services
+builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<ITokenBlackListService, TokenBlackListService>();

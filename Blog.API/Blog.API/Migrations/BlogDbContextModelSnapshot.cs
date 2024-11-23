@@ -22,6 +22,61 @@ namespace Blog.API.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Blog.API.Models.DB.Post", b =>
+                {
+                    b.Property<Guid>("id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("addressId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("author")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("authorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("commentsCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("communityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("communityName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("createTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("hasLike")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("image")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("likes")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("readingTime")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("id");
+
+                    b.ToTable("Posts");
+                });
+
             modelBuilder.Entity("Blog.API.Models.DB.Tag", b =>
                 {
                     b.Property<Guid>("id")
@@ -92,6 +147,36 @@ namespace Blog.API.Migrations
                     b.HasKey("id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("PostTag", b =>
+                {
+                    b.Property<Guid>("postsid")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("tagsid")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("postsid", "tagsid");
+
+                    b.HasIndex("tagsid");
+
+                    b.ToTable("PostTag");
+                });
+
+            modelBuilder.Entity("PostTag", b =>
+                {
+                    b.HasOne("Blog.API.Models.DB.Post", null)
+                        .WithMany()
+                        .HasForeignKey("postsid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Blog.API.Models.DB.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("tagsid")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
