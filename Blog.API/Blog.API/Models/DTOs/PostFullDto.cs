@@ -46,6 +46,9 @@ public class PostFullDto
     [Required]
     public int commentsCount { get; set; } = 0;
     
-    public List<TagDto>? tags { get; set; }
+    [Required]
+    public List<TagDto> tags { get; set; }
+    
+    public List<CommentDto>? comments { get; set; }
     
 }

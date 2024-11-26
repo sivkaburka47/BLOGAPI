@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Blog.API.Migrations
 {
     [DbContext(typeof(BlogDbContext))]
-    [Migration("20241123214909_Initial")]
+    [Migration("20241125193458_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -24,6 +24,45 @@ namespace Blog.API.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Blog.API.Models.DB.Comment", b =>
+                {
+                    b.Property<Guid>("id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("authorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("createTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("deleteDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("modifiedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("parentCommentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("postId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("id");
+
+                    b.HasIndex("authorId");
+
+                    b.HasIndex("parentCommentId");
+
+                    b.HasIndex("postId");
+
+                    b.ToTable("Comments");
+                });
 
             modelBuilder.Entity("Blog.API.Models.DB.Like", b =>
                 {
@@ -57,9 +96,6 @@ namespace Blog.API.Migrations
 
                     b.Property<Guid>("authorId")
                         .HasColumnType("uuid");
-
-                    b.Property<int>("commentsCount")
-                        .HasColumnType("integer");
 
                     b.Property<Guid?>("communityId")
                         .HasColumnType("uuid");
@@ -181,6 +217,31 @@ namespace Blog.API.Migrations
                     b.ToTable("PostTag");
                 });
 
+            modelBuilder.Entity("Blog.API.Models.DB.Comment", b =>
+                {
+                    b.HasOne("Blog.API.Models.DB.User", "author")
+                        .WithMany("comments")
+                        .HasForeignKey("authorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Blog.API.Models.DB.Comment", "parentComment")
+                        .WithMany("replies")
+                        .HasForeignKey("parentCommentId");
+
+                    b.HasOne("Blog.API.Models.DB.Post", "post")
+                        .WithMany("comments")
+                        .HasForeignKey("postId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("author");
+
+                    b.Navigation("parentComment");
+
+                    b.Navigation("post");
+                });
+
             modelBuilder.Entity("Blog.API.Models.DB.Like", b =>
                 {
                     b.HasOne("Blog.API.Models.DB.Post", "post")
@@ -226,13 +287,22 @@ namespace Blog.API.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Blog.API.Models.DB.Comment", b =>
+                {
+                    b.Navigation("replies");
+                });
+
             modelBuilder.Entity("Blog.API.Models.DB.Post", b =>
                 {
+                    b.Navigation("comments");
+
                     b.Navigation("likes");
                 });
 
             modelBuilder.Entity("Blog.API.Models.DB.User", b =>
                 {
+                    b.Navigation("comments");
+
                     b.Navigation("likes");
 
                     b.Navigation("posts");

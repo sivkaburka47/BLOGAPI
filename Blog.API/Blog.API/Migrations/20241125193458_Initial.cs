@@ -69,14 +69,48 @@ namespace Blog.API.Migrations
                     communityId = table.Column<Guid>(type: "uuid", nullable: true),
                     communityName = table.Column<string>(type: "text", nullable: true),
                     addressId = table.Column<Guid>(type: "uuid", nullable: true),
-                    hasLike = table.Column<bool>(type: "boolean", nullable: false),
-                    commentsCount = table.Column<int>(type: "integer", nullable: false)
+                    hasLike = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Posts", x => x.id);
                     table.ForeignKey(
                         name: "FK_Posts_Users_authorId",
+                        column: x => x.authorId,
+                        principalTable: "Users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Comments",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    content = table.Column<string>(type: "text", nullable: false),
+                    createTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    modifiedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    deleteDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    postId = table.Column<Guid>(type: "uuid", nullable: false),
+                    authorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    parentCommentId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Comments", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_Comments_Comments_parentCommentId",
+                        column: x => x.parentCommentId,
+                        principalTable: "Comments",
+                        principalColumn: "id");
+                    table.ForeignKey(
+                        name: "FK_Comments_Posts_postId",
+                        column: x => x.postId,
+                        principalTable: "Posts",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Comments_Users_authorId",
                         column: x => x.authorId,
                         principalTable: "Users",
                         principalColumn: "id",
@@ -133,6 +167,21 @@ namespace Blog.API.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Comments_authorId",
+                table: "Comments",
+                column: "authorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Comments_parentCommentId",
+                table: "Comments",
+                column: "parentCommentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Comments_postId",
+                table: "Comments",
+                column: "postId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Likes_postId",
                 table: "Likes",
                 column: "postId");
@@ -156,6 +205,9 @@ namespace Blog.API.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Comments");
+
             migrationBuilder.DropTable(
                 name: "Likes");
 

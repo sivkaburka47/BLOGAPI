@@ -16,5 +16,7 @@ namespace Blog.API.Models.DB
         public List<Post> posts { get; set; }
         
         public List<Like> likes { get; set; }
+        
+        public List<Comment> comments { get; set; }
     }
 }
