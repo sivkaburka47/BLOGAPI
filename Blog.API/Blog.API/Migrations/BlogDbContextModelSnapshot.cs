@@ -61,6 +61,49 @@ namespace Blog.API.Migrations
                     b.ToTable("Comments");
                 });
 
+            modelBuilder.Entity("Blog.API.Models.DB.Community", b =>
+                {
+                    b.Property<Guid>("id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("createTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("description")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("isClosed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("id");
+
+                    b.ToTable("Communities");
+                });
+
+            modelBuilder.Entity("Blog.API.Models.DB.CommunityUser", b =>
+                {
+                    b.Property<Guid>("userId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("communityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int[]>("communityRoles")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.HasKey("userId", "communityId");
+
+                    b.HasIndex("communityId");
+
+                    b.ToTable("CommunityUsers");
+                });
+
             modelBuilder.Entity("Blog.API.Models.DB.Like", b =>
                 {
                     b.Property<Guid>("id")
@@ -123,6 +166,8 @@ namespace Blog.API.Migrations
                     b.HasKey("id");
 
                     b.HasIndex("authorId");
+
+                    b.HasIndex("communityId");
 
                     b.ToTable("Posts");
                 });
@@ -239,6 +284,25 @@ namespace Blog.API.Migrations
                     b.Navigation("post");
                 });
 
+            modelBuilder.Entity("Blog.API.Models.DB.CommunityUser", b =>
+                {
+                    b.HasOne("Blog.API.Models.DB.Community", "community")
+                        .WithMany("communityUsers")
+                        .HasForeignKey("communityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Blog.API.Models.DB.User", "user")
+                        .WithMany("communityUsers")
+                        .HasForeignKey("userId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("community");
+
+                    b.Navigation("user");
+                });
+
             modelBuilder.Entity("Blog.API.Models.DB.Like", b =>
                 {
                     b.HasOne("Blog.API.Models.DB.Post", "post")
@@ -266,7 +330,13 @@ namespace Blog.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Blog.API.Models.DB.Community", "community")
+                        .WithMany("posts")
+                        .HasForeignKey("communityId");
+
                     b.Navigation("author");
+
+                    b.Navigation("community");
                 });
 
             modelBuilder.Entity("PostTag", b =>
@@ -289,6 +359,13 @@ namespace Blog.API.Migrations
                     b.Navigation("replies");
                 });
 
+            modelBuilder.Entity("Blog.API.Models.DB.Community", b =>
+                {
+                    b.Navigation("communityUsers");
+
+                    b.Navigation("posts");
+                });
+
             modelBuilder.Entity("Blog.API.Models.DB.Post", b =>
                 {
                     b.Navigation("comments");
@@ -299,6 +376,8 @@ namespace Blog.API.Migrations
             modelBuilder.Entity("Blog.API.Models.DB.User", b =>
                 {
                     b.Navigation("comments");
+
+                    b.Navigation("communityUsers");
 
                     b.Navigation("likes");
 

@@ -75,7 +75,7 @@ namespace Blog.API.Services
             if (!string.IsNullOrEmpty(author))
             {
                 query = query.Include(p => p.author)
-                    .Where(post => post.author.fullName == author);
+                    .Where(post => post.author.fullName.Contains(author));
             }
 
 

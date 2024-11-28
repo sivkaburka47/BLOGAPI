@@ -12,6 +12,21 @@ namespace Blog.API.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "Communities",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    createTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    description = table.Column<string>(type: "text", nullable: true),
+                    isClosed = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Communities", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Tags",
                 columns: table => new
                 {
@@ -56,6 +71,31 @@ namespace Blog.API.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CommunityUsers",
+                columns: table => new
+                {
+                    userId = table.Column<Guid>(type: "uuid", nullable: false),
+                    communityId = table.Column<Guid>(type: "uuid", nullable: false),
+                    communityRoles = table.Column<int[]>(type: "integer[]", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CommunityUsers", x => new { x.userId, x.communityId });
+                    table.ForeignKey(
+                        name: "FK_CommunityUsers_Communities_communityId",
+                        column: x => x.communityId,
+                        principalTable: "Communities",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CommunityUsers_Users_userId",
+                        column: x => x.userId,
+                        principalTable: "Users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Posts",
                 columns: table => new
                 {
@@ -74,6 +114,11 @@ namespace Blog.API.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Posts", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_Posts_Communities_communityId",
+                        column: x => x.communityId,
+                        principalTable: "Communities",
+                        principalColumn: "id");
                     table.ForeignKey(
                         name: "FK_Posts_Users_authorId",
                         column: x => x.authorId,
@@ -182,6 +227,11 @@ namespace Blog.API.Migrations
                 column: "postId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CommunityUsers_communityId",
+                table: "CommunityUsers",
+                column: "communityId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Likes_postId",
                 table: "Likes",
                 column: "postId");
@@ -197,6 +247,11 @@ namespace Blog.API.Migrations
                 column: "authorId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Posts_communityId",
+                table: "Posts",
+                column: "communityId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PostTag_tagsid",
                 table: "PostTag",
                 column: "tagsid");
@@ -207,6 +262,9 @@ namespace Blog.API.Migrations
         {
             migrationBuilder.DropTable(
                 name: "Comments");
+
+            migrationBuilder.DropTable(
+                name: "CommunityUsers");
 
             migrationBuilder.DropTable(
                 name: "Likes");
@@ -222,6 +280,9 @@ namespace Blog.API.Migrations
 
             migrationBuilder.DropTable(
                 name: "Tags");
+
+            migrationBuilder.DropTable(
+                name: "Communities");
 
             migrationBuilder.DropTable(
                 name: "Users");

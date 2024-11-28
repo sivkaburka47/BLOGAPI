@@ -10,8 +10,10 @@ namespace Blog.API.Data
         public DbSet<Post> Posts { get; set; }
         public DbSet<Like> Likes { get; set; }
         
-        public DbSet<Comment> Comments { get; set; }
+        public DbSet<Community> Communities { get; set; }
         
+        public DbSet<CommunityUser> CommunityUsers { get; set; }
+        public DbSet<Comment> Comments { get; set; }
         public DbSet<TokenBlackList> TokenBlackList { get; set; }
         
         public BlogDbContext(DbContextOptions<BlogDbContext> options) : base(options)
@@ -19,6 +21,14 @@ namespace Blog.API.Data
             Database.EnsureCreated();
         }
         
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            
+            modelBuilder.Entity<CommunityUser>(entity =>
+            {
+                entity.HasKey(e => new { e.userId, e.communityId });
+            });
+        }
 
     }
 }
