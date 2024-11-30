@@ -55,6 +55,12 @@ public class CommunityService : ICommunityService
         {
             throw new UnauthorizedAccessException();
         }
+        
+        var userdb = await _context.Users
+            .FirstOrDefaultAsync(d => d.id == parsedId);
+
+        if (userdb == null)
+            throw new KeyNotFoundException("User not found");
 
         var userCommunities = await _context.CommunityUsers
             .Where(cu => cu.userId == parsedId)
@@ -114,10 +120,28 @@ public class CommunityService : ICommunityService
         {
             throw new UnauthorizedAccessException();
         }
+        
+        var userdb = await _context.Users
+            .FirstOrDefaultAsync(d => d.id == parsedId);
+
+        if (userdb == null)
+            throw new KeyNotFoundException("User not found");
 
         if (page < 1 || size < 1)
         {
             throw new ValidationAccessException("page or size must be greater than 0");
+        }
+        
+        if (tags != null && tags.Any())
+        {
+            foreach (var tagId in tags)
+            {
+                var tagExists = await _context.Tags.AnyAsync(t => t.id == tagId);
+                if (!tagExists)
+                {
+                    throw new KeyNotFoundException($"Tag with id={tagId} not found in database");
+                }
+            }
         }
 
         var community = await _context.Communities
@@ -129,12 +153,9 @@ public class CommunityService : ICommunityService
 
         if (community.isClosed)
         {
-            var userRole = community.communityUsers
-                .Where(cu => cu.userId == parsedId)
-                .Select(cu => cu.communityRoles.Min())
-                .FirstOrDefault();
+            var isMember = community.communityUsers.Any(cu => cu.userId == parsedId);
 
-            if (userRole == null)
+            if (!isMember)
                 throw new ForbiddenAccessException($"Access to closed community with id={communityId} is forbidden");
         }
 
@@ -184,7 +205,7 @@ public class CommunityService : ICommunityService
             authorId = post.authorId,
             author = post.author.fullName,
             communityId = post.communityId,
-            communityName = post.communityName,
+            communityName = community.name,
             addressId = post.addressId,
             likes = post.likes.Count(),
             hasLike = post.likes.Any(like => like.userId == parsedId),
@@ -236,14 +257,14 @@ public class CommunityService : ICommunityService
 
         if (community == null)
             throw new KeyNotFoundException($"Community with id={communityId} not found");
+        
+        var existingUser = await _context.CommunityUsers
+            .FirstOrDefaultAsync(cu => cu.communityId == communityId && cu.userId == parsedId);
 
-        var userRole = community.communityUsers
-            .Where(cu => cu.userId == parsedId)
-            .Select(cu => cu.communityRoles.Min())
-            .FirstOrDefault();
-
-        if (userRole != CommunityRole.Administrator)
+        if (existingUser == null || !existingUser.communityRoles.Contains(CommunityRole.Administrator))
+        {
             throw new ForbiddenAccessException($"User Id={parsedId} is not able to post in community Id={communityId}");
+        }
 
         var post = new Post
         {
@@ -255,7 +276,6 @@ public class CommunityService : ICommunityService
             authorId = parsedId,
             author = userdb,
             communityId = communityId,
-            communityName = community.name,
             addressId = model.addressId,
             tags = new List<Tag>(),
             comments = new List<Comment>()
@@ -288,6 +308,12 @@ public class CommunityService : ICommunityService
         {
             throw new UnauthorizedAccessException("User is not authenticated.");
         }
+        
+        var userdb = await _context.Users
+            .FirstOrDefaultAsync(d => d.id == parsedId);
+
+        if (userdb == null)
+            throw new KeyNotFoundException("User not found");
 
         var community = await _context.Communities
             .Include(c => c.communityUsers)
@@ -318,6 +344,12 @@ public class CommunityService : ICommunityService
         {
             throw new UnauthorizedAccessException("User is not authenticated.");
         }
+        
+        var userdb = await _context.Users
+            .FirstOrDefaultAsync(d => d.id == parsedId);
+
+        if (userdb == null)
+            throw new KeyNotFoundException("User not found");
 
         var community = await _context.Communities
             .FirstOrDefaultAsync(c => c.id == communityId);
@@ -359,6 +391,12 @@ public class CommunityService : ICommunityService
         {
             throw new UnauthorizedAccessException("User is not authenticated.");
         }
+        
+        var userdb = await _context.Users
+            .FirstOrDefaultAsync(d => d.id == parsedId);
+
+        if (userdb == null)
+            throw new KeyNotFoundException("User not found");
 
         var community = await _context.Communities
             .FirstOrDefaultAsync(c => c.id == communityId);

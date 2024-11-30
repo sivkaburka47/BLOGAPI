@@ -55,21 +55,37 @@ namespace Blog.API.Services
             {
                 throw new UnauthorizedAccessException();
             }
-
+            
             var userdb = await _context.Users
                 .FirstOrDefaultAsync(d => d.id == parsedId);
 
             if (userdb == null)
                 throw new KeyNotFoundException("User not found");
+            
 
             if (page < 1 || size < 1)
             {
                 throw new ValidationAccessException("page or size must be greater than 0");
             }
+            
+            if (tags != null && tags.Any())
+            {
+                foreach (var tagId in tags)
+                {
+                    var tagExists = await _context.Tags.AnyAsync(t => t.id == tagId);
+                    if (!tagExists)
+                    {
+                        throw new KeyNotFoundException($"Tag with id={tagId} not found in database");
+                    }
+                }
+            }
 
             var query = _context.Posts
                 .Include(p => p.tags)
                 .Include(p => p.likes)
+                .Include(p => p.author)
+                .Include(p => p.community)
+                .ThenInclude(c => c.communityUsers)
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(author))
@@ -92,6 +108,19 @@ namespace Blog.API.Services
             if (tags != null && tags.Any())
             {
                 query = query.Where(post => post.tags.Any(tag => tags.Contains(tag.id)));
+            }
+
+            if (onlyMyCommunities)
+            {
+                query = query.Where(post =>
+                    post.community != null &&
+                    post.community.communityUsers.Any(cu => cu.userId == parsedId));
+            }
+            else
+            {
+                query = query.Where(post =>
+                    post.community == null || !post.community.isClosed ||
+                    post.community.communityUsers.Any(cu => cu.userId == parsedId));
             }
 
             switch (sorting)
@@ -128,10 +157,10 @@ namespace Blog.API.Services
                 authorId = post.authorId,
                 author = post.author.fullName,
                 communityId = post.communityId,
-                communityName = post.communityName,
+                communityName = post.communityId != null ? post.community.name : null,
                 addressId = post.addressId,
                 likes = post.likes.Count(),
-                hasLike = post.likes.Any(like => like.userId == userdb.id),
+                hasLike = post.likes.Any(like => like.userId == parsedId),
                 commentsCount = _context.Comments.Count(c => c.postId == post.id),
                 tags = post.tags?.Select(tag => new TagDto
                 {
@@ -226,6 +255,8 @@ namespace Blog.API.Services
             var post = await _context.Posts
                 .Include(p => p.tags)
                 .Include(p => p.likes)
+                .Include(p => p.community)
+                .ThenInclude(c => c.communityUsers)
                 .Include(p => p.comments)
                 .ThenInclude(c => c.author)
                 .FirstOrDefaultAsync(p => p.id == postId);
@@ -234,6 +265,15 @@ namespace Blog.API.Services
             {
                 throw new KeyNotFoundException($"Post with id {postId} not found.");
             }
+            
+            if (post.community != null && post.community.isClosed)
+            {
+                var isMember = post.community.communityUsers.Any(cu => cu.userId == parsedId);
+
+                if (!isMember)
+                    throw new ForbiddenAccessException($"Access to closed community with id={post.community.id} is forbidden");
+            }
+            
 
             var postFullDto = new PostFullDto
             {
@@ -246,7 +286,7 @@ namespace Blog.API.Services
                 authorId = post.authorId,
                 author = post.author.fullName,
                 communityId = post.communityId,
-                communityName = post.communityName,
+                communityName = post.communityId != null ? post.community.name : null,
                 addressId = post.addressId,
                 likes = post.likes.Count(),
                 hasLike = post.likes.Any(like => like.userId == parsedId),
@@ -294,11 +334,21 @@ namespace Blog.API.Services
 
             var post = await _context.Posts
                 .Include(p => p.likes)
+                .Include(p => p.community)
+                .ThenInclude(c => c.communityUsers)
                 .FirstOrDefaultAsync(p => p.id == postId);
 
             if (post == null)
             {
                 throw new KeyNotFoundException($"Post with id {postId} not found.");
+            }
+            
+            if (post.community != null && post.community.isClosed)
+            {
+                var isMember = post.community.communityUsers.Any(cu => cu.userId == parsedId);
+
+                if (!isMember)
+                    throw new ForbiddenAccessException($"Access to closed community with id={post.community.id} is forbidden");
             }
 
             var existingLike = post.likes.FirstOrDefault(like => like.userId == parsedId);
@@ -336,11 +386,21 @@ namespace Blog.API.Services
 
             var post = await _context.Posts
                 .Include(p => p.likes)
+                .Include(p => p.community)
+                .ThenInclude(c => c.communityUsers)
                 .FirstOrDefaultAsync(p => p.id == postId);
 
             if (post == null)
             {
                 throw new KeyNotFoundException($"Post with id {postId} not found.");
+            }
+            
+            if (post.community != null && post.community.isClosed)
+            {
+                var isMember = post.community.communityUsers.Any(cu => cu.userId == parsedId);
+
+                if (!isMember)
+                    throw new ForbiddenAccessException($"Access to closed community with id={post.community.id} is forbidden");
             }
 
             var existingLike = post.likes.FirstOrDefault(like => like.userId == parsedId);

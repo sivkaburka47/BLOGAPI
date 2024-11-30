@@ -26,57 +26,72 @@ public class CommentService : ICommentService
         _context = context;
     }
     
-    public async Task<ActionResult> AddCommentToPost(Guid postId, CreateCommentDto model, ClaimsPrincipal user)
+public async Task<ActionResult> AddCommentToPost(Guid postId, CreateCommentDto model, ClaimsPrincipal user)
+{
+    var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (userId == null || !Guid.TryParse(userId, out var parsedId))
     {
-        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (userId == null || !Guid.TryParse(userId, out var parsedId))
-        {
-            throw new UnauthorizedAccessException();
-        }
-
-        var userdb = await _context.Users
-            .FirstOrDefaultAsync(d => d.id == parsedId);
-        
-        if (userdb == null)
-            throw new KeyNotFoundException("User not found"); 
-        
-        var post = await _context.Posts
-            .FirstOrDefaultAsync(p => p.id == postId);
-        
-        if (post == null)
-            throw new KeyNotFoundException("Post not found"); 
-        
-        Comment? parentComment = null;
-        if (model.parentId != null)
-        {
-            parentComment = await _context.Comments
-                .FirstOrDefaultAsync(c => c.id == model.parentId.Value);
-
-            if (parentComment == null)
-                throw new KeyNotFoundException("Parent comment not found"); 
-            
-            if (parentComment.postId != postId)
-                throw new ValidationAccessException("Parent comment is attached to another post");
-        }
-        
-        var newComment = new Comment
-        {
-            id = Guid.NewGuid(),
-            content = model.content,
-            createTime = DateTime.UtcNow,
-            postId = postId,
-            authorId = parsedId,
-            parentCommentId = model.parentId
-        };
-        
-        _context.Comments.Add(newComment);
-        await _context.SaveChangesAsync();
-        return null;
+        throw new UnauthorizedAccessException();
     }
+
+    var post = await _context.Posts
+        .Include(p => p.community)
+        .FirstOrDefaultAsync(p => p.id == postId);
+
+    if (post == null)
+        throw new KeyNotFoundException($"Post with id {postId} not found.");
+
+    var community = post.community;
+
+    if (community != null && community.isClosed)
+    {
+        var isMember = await _context.CommunityUsers
+            .AnyAsync(cu => cu.communityId == community.id && cu.userId == parsedId);
+
+        if (!isMember)
+        {
+            throw new ForbiddenAccessException($"User is not a member of the closed community id={community.id}");
+        }
+    }
+
+    Comment? parentComment = null;
+    if (model.parentId != null)
+    {
+        parentComment = await _context.Comments
+            .FirstOrDefaultAsync(c => c.id == model.parentId.Value);
+
+        if (parentComment == null)
+            throw new KeyNotFoundException("Parent comment not found");
+
+        if (parentComment.postId != postId)
+            throw new ValidationAccessException("Parent comment is attached to another post");
+    }
+
+    var newComment = new Comment
+    {
+        id = Guid.NewGuid(),
+        content = model.content,
+        createTime = DateTime.UtcNow,
+        postId = postId,
+        authorId = parsedId,
+        parentCommentId = model.parentId
+    };
+
+    _context.Comments.Add(newComment);
+    await _context.SaveChangesAsync();
+    return null;
+}
+
 
 
     public async Task<List<CommentDto>> GetCommentsTree(Guid commentId)
     {
+        var commentExists = await _context.Comments.AnyAsync(c => c.id == commentId);
+        if (!commentExists)
+        {
+            throw new KeyNotFoundException($"Comment with id={commentId} not found");
+        }
+        
         var comments = await _context.Comments
             .AsNoTracking()
             .Include(c => c.author)
@@ -136,15 +151,12 @@ public class CommentService : ICommentService
         {
             throw new UnauthorizedAccessException();
         }
+        
 
-        var userdb = await _context.Users
-            .FirstOrDefaultAsync(d => d.id == parsedId);
-        
-        if (userdb == null)
-            throw new KeyNotFoundException("User not found"); 
-        
         var comment = await _context.Comments
             .Include(c => c.replies)
+            .Include(c => c.post)
+            .ThenInclude(p => p.community)
             .FirstOrDefaultAsync(c => c.id == commentId);
 
         if (comment == null)
@@ -152,11 +164,24 @@ public class CommentService : ICommentService
             throw new KeyNotFoundException($"Comment Id={commentId} not found");
         }
 
-        if (comment.authorId != userdb.id)
-        {
-            throw new ForbiddenAccessException("Not enought rights");
-        }
+        var community = comment.post?.community;
 
+        if (community != null && community.isClosed)
+        {
+            var isMember = await _context.CommunityUsers
+                .AnyAsync(cu => cu.communityId == community.id && cu.userId == parsedId);
+
+            if (!isMember)
+            {
+                throw new ForbiddenAccessException($"User is not a member of the closed community id={community.id}");
+            }
+        }
+        
+        if (comment.authorId != parsedId)
+        {
+            throw new ForbiddenAccessException("Not enough rights to delete this comment");
+        }
+        
         if (comment.replies.Any())
         {
             comment.content = "";
@@ -171,6 +196,7 @@ public class CommentService : ICommentService
         await _context.SaveChangesAsync();
         return null;
     }
+
     
     public async Task<IActionResult> EditComment(Guid commentId, UpdateCommentDto updateCommentDto, ClaimsPrincipal user)
     {
@@ -179,24 +205,33 @@ public class CommentService : ICommentService
         {
             throw new UnauthorizedAccessException();
         }
-
-        var userdb = await _context.Users
-            .FirstOrDefaultAsync(d => d.id == parsedId);
-    
-        if (userdb == null)
-            throw new KeyNotFoundException("User not found"); 
     
         var comment = await _context.Comments
+            .Include(c => c.post)
+            .ThenInclude(p => p.community)
             .FirstOrDefaultAsync(c => c.id == commentId);
 
         if (comment == null)
         {
             throw new KeyNotFoundException($"Comment Id={commentId} not found");
         }
+        
+        var community = comment.post?.community;
 
-        if (comment.authorId != userdb.id)
+        if (community != null && community.isClosed)
         {
-            throw new ForbiddenAccessException("Not enough rights");
+            var isMember = await _context.CommunityUsers
+                .AnyAsync(cu => cu.communityId == community.id && cu.userId == parsedId);
+
+            if (!isMember)
+            {
+                throw new ForbiddenAccessException($"User is not a member of the closed community id={community.id}");
+            }
+        }
+
+        if (comment.authorId != parsedId)
+        {
+            throw new ForbiddenAccessException("Not enough rights to edit this comment");
         }
         
         comment.content = updateCommentDto.content;

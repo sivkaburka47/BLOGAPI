@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Blog.API.Migrations
 {
     [DbContext(typeof(BlogDbContext))]
-    [Migration("20241128103355_Initial")]
+    [Migration("20241130084921_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -143,18 +143,12 @@ namespace Blog.API.Migrations
                     b.Property<Guid?>("communityId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("communityName")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("createTime")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("description")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<bool>("hasLike")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("image")
                         .HasColumnType("text");

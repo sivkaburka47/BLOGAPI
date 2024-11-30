@@ -107,9 +107,7 @@ namespace Blog.API.Migrations
                     image = table.Column<string>(type: "text", nullable: true),
                     authorId = table.Column<Guid>(type: "uuid", nullable: false),
                     communityId = table.Column<Guid>(type: "uuid", nullable: true),
-                    communityName = table.Column<string>(type: "text", nullable: true),
-                    addressId = table.Column<Guid>(type: "uuid", nullable: true),
-                    hasLike = table.Column<bool>(type: "boolean", nullable: false)
+                    addressId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {

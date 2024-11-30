@@ -12,10 +12,8 @@ namespace Blog.API.Models.DB
         public User author { get; set; }
         public Guid? communityId { get; set; }
         public Community? community { get; set; }
-        public string? communityName { get; set; }
         public Guid? addressId { get; set; }
         public List<Like> likes { get; set; } = new List<Like>();
-        public bool hasLike { get; set; } = false;
         public List<Tag>? tags { get; set; }
         public List<Comment> comments { get; set; } = new List<Comment>();
 
