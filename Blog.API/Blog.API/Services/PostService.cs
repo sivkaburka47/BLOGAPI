@@ -51,23 +51,22 @@ namespace Blog.API.Services
             ClaimsPrincipal user)
         {
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null || !Guid.TryParse(userId, out var parsedId))
-            {
-                throw new UnauthorizedAccessException();
-            }
-            
-            var userdb = await _context.Users
-                .FirstOrDefaultAsync(d => d.id == parsedId);
+            Guid? parsedId = null;
 
-            if (userdb == null)
-                throw new KeyNotFoundException("User not found");
-            
+            if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parsed))
+            {
+                parsedId = parsed;
+                var userdb = await _context.Users.FirstOrDefaultAsync(d => d.id == parsedId);
+                if (userdb == null)
+                    throw new KeyNotFoundException("User not found");
+            }
+
 
             if (page < 1 || size < 1)
             {
                 throw new ValidationAccessException("page or size must be greater than 0");
             }
-            
+
             if (tags != null && tags.Any())
             {
                 foreach (var tagId in tags)
@@ -109,18 +108,25 @@ namespace Blog.API.Services
             {
                 query = query.Where(post => post.tags.Any(tag => tags.Contains(tag.id)));
             }
-
-            if (onlyMyCommunities)
+            
+            if (parsedId != null)
             {
-                query = query.Where(post =>
-                    post.community != null &&
-                    post.community.communityUsers.Any(cu => cu.userId == parsedId));
+                if (onlyMyCommunities)
+                {
+                    query = query.Where(post =>
+                        post.community != null &&
+                        post.community.communityUsers.Any(cu => cu.userId == parsedId));
+                }
+                else
+                {
+                    query = query.Where(post =>
+                        post.community == null || !post.community.isClosed ||
+                        post.community.communityUsers.Any(cu => cu.userId == parsedId));
+                }
             }
             else
             {
-                query = query.Where(post =>
-                    post.community == null || !post.community.isClosed ||
-                    post.community.communityUsers.Any(cu => cu.userId == parsedId));
+                query = query.Where(post => post.community == null || !post.community.isClosed);
             }
 
             switch (sorting)
@@ -160,7 +166,7 @@ namespace Blog.API.Services
                 communityName = post.communityId != null ? post.community.name : null,
                 addressId = post.addressId,
                 likes = post.likes.Count(),
-                hasLike = post.likes.Any(like => like.userId == parsedId),
+                hasLike = parsedId != null && post.likes.Any(like => like.userId == parsedId),
                 commentsCount = _context.Comments.Count(c => c.postId == post.id),
                 tags = post.tags?.Select(tag => new TagDto
                 {
@@ -169,6 +175,14 @@ namespace Blog.API.Services
                     name = tag.name
                 }).ToList()
             }).ToList();
+
+            if (parsedId == null)
+            {
+                foreach (var post in postsdb)
+                {
+                    post.hasLike = false;
+                }
+            }
 
 
             var pageInfo = new PageInfoModel
@@ -265,15 +279,16 @@ namespace Blog.API.Services
             {
                 throw new KeyNotFoundException($"Post with id {postId} not found.");
             }
-            
+
             if (post.community != null && post.community.isClosed)
             {
                 var isMember = post.community.communityUsers.Any(cu => cu.userId == parsedId);
 
                 if (!isMember)
-                    throw new ForbiddenAccessException($"Access to closed community with id={post.community.id} is forbidden");
+                    throw new ForbiddenAccessException(
+                        $"Access to closed community with id={post.community.id} is forbidden");
             }
-            
+
 
             var postFullDto = new PostFullDto
             {
@@ -298,19 +313,19 @@ namespace Blog.API.Services
                     name = t.name
                 }).ToList(),
                 comments = post.comments
-                    .Where(c => c.parentCommentId == null) 
+                    .Where(c => c.parentCommentId == null)
                     .OrderBy(c => c.createTime)
                     .Select(c => new CommentDto
-                {
-                    id = c.id,
-                    createTime = c.createTime,
-                    content = c.content,
-                    modifiedDate = c.modifiedDate,
-                    deleteDate = c.deleteDate,
-                    authorId = c.authorId,
-                    author = c.author.fullName,
-                    subComments = post.comments.Count(sub => sub.parentCommentId == c.id)
-                }).ToList()
+                    {
+                        id = c.id,
+                        createTime = c.createTime,
+                        content = c.content,
+                        modifiedDate = c.modifiedDate,
+                        deleteDate = c.deleteDate,
+                        authorId = c.authorId,
+                        author = c.author.fullName,
+                        subComments = post.comments.Count(sub => sub.parentCommentId == c.id)
+                    }).ToList()
             };
 
             return postFullDto;
@@ -342,13 +357,14 @@ namespace Blog.API.Services
             {
                 throw new KeyNotFoundException($"Post with id {postId} not found.");
             }
-            
+
             if (post.community != null && post.community.isClosed)
             {
                 var isMember = post.community.communityUsers.Any(cu => cu.userId == parsedId);
 
                 if (!isMember)
-                    throw new ForbiddenAccessException($"Access to closed community with id={post.community.id} is forbidden");
+                    throw new ForbiddenAccessException(
+                        $"Access to closed community with id={post.community.id} is forbidden");
             }
 
             var existingLike = post.likes.FirstOrDefault(like => like.userId == parsedId);
@@ -394,13 +410,14 @@ namespace Blog.API.Services
             {
                 throw new KeyNotFoundException($"Post with id {postId} not found.");
             }
-            
+
             if (post.community != null && post.community.isClosed)
             {
                 var isMember = post.community.communityUsers.Any(cu => cu.userId == parsedId);
 
                 if (!isMember)
-                    throw new ForbiddenAccessException($"Access to closed community with id={post.community.id} is forbidden");
+                    throw new ForbiddenAccessException(
+                        $"Access to closed community with id={post.community.id} is forbidden");
             }
 
             var existingLike = post.likes.FirstOrDefault(like => like.userId == parsedId);

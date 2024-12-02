@@ -18,7 +18,7 @@ namespace Blog.API.Controllers
             _postService = postService;
         }
     
-        [Authorize]
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<PostPagedListDto>> GetList(
             [FromQuery] List<Guid> tags,
