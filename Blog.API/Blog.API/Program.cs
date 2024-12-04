@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using Blog.API.Context;
 using Blog.API.Data;
 using Blog.API.Infrastracture;
 using Blog.API.Middleware;
@@ -51,8 +52,10 @@ builder.Services.AddSwaggerGen(c =>
 
 //database
 builder.Services.AddDbContext<BlogDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<MyDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("SecondConnection")));
 
 //services
+builder.Services.AddScoped<IAddressService, AddressService>();
 builder.Services.AddScoped<ICommunityService, CommunityService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
