@@ -3,12 +3,14 @@ using System.Text.Json.Serialization;
 using Blog.API.Context;
 using Blog.API.Data;
 using Blog.API.Infrastracture;
+using Blog.API.Infrastucture.Email;
 using Blog.API.Middleware;
 using Blog.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Quartz;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +55,35 @@ builder.Services.AddSwaggerGen(c =>
 //database
 builder.Services.AddDbContext<BlogDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddDbContext<MyDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("SecondConnection")));
+
+//quartz
+builder.Services.AddQuartz(q =>
+{
+    q.UseMicrosoftDependencyInjectionJobFactory(); 
+    var jobKey = new JobKey("NotificationOfANewReleasedPost");
+
+    q.AddJob<NewCommunityPostNotificationJob>(opts => opts.WithIdentity(jobKey));  
+    q.AddTrigger(opts => opts
+        .ForJob(jobKey)  
+        .WithIdentity("NewCommunityPostNotificationJob-trigger")
+        .StartNow()
+        .WithSimpleSchedule(x => x
+            .WithIntervalInMinutes(1)
+            .RepeatForever())); 
+    
+    var retryJobKey = new JobKey("RetryFailedNotifications");
+    q.AddJob<RetryFailedNotificationsJob>(opts => opts.WithIdentity(retryJobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(retryJobKey)
+        .WithIdentity("RetryFailedNotifications-trigger")
+        .StartNow()
+        .WithSimpleSchedule(x => x.WithIntervalInMinutes(5).RepeatForever()));
+});
+builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+
+//smtp
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+builder.Services.AddScoped<IEmailSender, EmailSender>();
 
 //services
 builder.Services.AddScoped<IAddressService, AddressService>();

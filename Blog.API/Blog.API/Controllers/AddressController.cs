@@ -1,7 +1,9 @@
+using Blog.API.Infrastucture.Email;
 using Blog.API.Models.DTOs;
 using Blog.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
 
 
 namespace Blog.API.Controllers
@@ -10,11 +12,14 @@ namespace Blog.API.Controllers
     [ApiController]
     public class AddressController : ControllerBase
     {
-        private  IAddressService _addressService;
+        private IAddressService _addressService;
+        private IEmailSender _emailSender;
     
-        public AddressController(IAddressService addressService)
+        public AddressController(IAddressService addressService, IEmailSender emailSender)
         {
             _addressService = addressService;
+            _emailSender = emailSender;
+
         }
         
         [AllowAnonymous]
@@ -31,6 +36,15 @@ namespace Blog.API.Controllers
         {
             var response = await _addressService.GetAddressChain(objectGuid);
             return Ok(response);
+        }
+        
+        [AllowAnonymous]
+        [HttpGet("SendEmail")]
+        public async Task<ActionResult<string>> GetAddressChain(string email, string subject, string body)
+        {
+            await _emailSender.SendEmailAsync(email, subject, body);
+            return Ok("Sent");
+
         }
         
     }

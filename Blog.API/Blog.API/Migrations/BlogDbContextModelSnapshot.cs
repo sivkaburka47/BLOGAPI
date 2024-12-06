@@ -125,6 +125,34 @@ namespace Blog.API.Migrations
                     b.ToTable("Likes");
                 });
 
+            modelBuilder.Entity("Blog.API.Models.DB.Notification", b =>
+                {
+                    b.Property<Guid>("id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("createdAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("errorMessage")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("isPermanentFailure")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("postId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("subscriberEmail")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("id");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("Blog.API.Models.DB.Post", b =>
                 {
                     b.Property<Guid>("id")

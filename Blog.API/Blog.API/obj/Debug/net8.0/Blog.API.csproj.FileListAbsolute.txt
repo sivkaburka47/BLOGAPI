@@ -119,3 +119,10 @@
 /Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/bin/Debug/net8.0/tr/Microsoft.CodeAnalysis.Workspaces.resources.dll
 /Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/bin/Debug/net8.0/zh-Hans/Microsoft.CodeAnalysis.Workspaces.resources.dll
 /Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/bin/Debug/net8.0/zh-Hant/Microsoft.CodeAnalysis.Workspaces.resources.dll
+/Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/bin/Debug/net8.0/BouncyCastle.Cryptography.dll
+/Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/bin/Debug/net8.0/MailKit.dll
+/Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/bin/Debug/net8.0/MimeKit.dll
+/Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/bin/Debug/net8.0/Quartz.dll
+/Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/bin/Debug/net8.0/Quartz.AspNetCore.dll
+/Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/bin/Debug/net8.0/Quartz.Extensions.DependencyInjection.dll
+/Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/bin/Debug/net8.0/Quartz.Extensions.Hosting.dll

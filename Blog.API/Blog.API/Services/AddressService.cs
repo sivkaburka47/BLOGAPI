@@ -31,7 +31,8 @@ public class AddressService : IAddressService
 
         var sortedAddrObjs = await _context.AsAddrObjs
             .Where(a => objectIds.Contains(a.Objectid))
-            .OrderBy(a => a.Name)
+            .OrderBy(a => a.Typename)
+            .ThenBy(a => a.Name)
             .ToListAsync();
 
         foreach (var addrObj in sortedAddrObjs)
@@ -95,7 +96,7 @@ public class AddressService : IAddressService
 
         if (hierarchy == null)
         {
-            throw new KeyNotFoundException($"Hierarchy for object with id={objectGuid} not found");
+            return new List<SearchAddressModel>();
         }
 
         var pathObjectIds = hierarchy.Path.Split('.').Select(long.Parse).ToList();

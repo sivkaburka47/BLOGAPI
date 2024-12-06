@@ -10,6 +10,7 @@ namespace Blog.API.Data
         public DbSet<Post> Posts { get; set; }
         public DbSet<Like> Likes { get; set; }
         
+        public DbSet<Notification> Notifications { get; set; }
         public DbSet<Community> Communities { get; set; }
         
         public DbSet<CommunityUser> CommunityUsers { get; set; }
