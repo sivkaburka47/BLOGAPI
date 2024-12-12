@@ -126,12 +126,14 @@ public class CommunityService : ICommunityService
 
         if (userdb == null)
             throw new KeyNotFoundException("User not found");
-
+        
+        //Валидация страницы и ее размера
         if (page < 1 || size < 1)
         {
             throw new ValidationAccessException("page or size must be greater than 0");
         }
         
+        //Проверка существования тегов в бд
         if (tags != null && tags.Any())
         {
             foreach (var tagId in tags)
@@ -148,6 +150,7 @@ public class CommunityService : ICommunityService
             .Include(c => c.communityUsers)
             .FirstOrDefaultAsync(c => c.id == communityId);
 
+        //Проверка существования сообщества в бд
         if (community == null)
             throw new KeyNotFoundException($"Community with id={communityId} not found");
 
@@ -166,11 +169,13 @@ public class CommunityService : ICommunityService
             .Where(post => post.communityId == communityId)
             .AsQueryable();
 
+        //Фильтрация по тегам
         if (tags != null && tags.Any())
         {
             query = query.Where(post => post.tags.Any(tag => tags.Contains(tag.id)));
         }
 
+        //Сортировка по выбранной пользователем
         switch (sorting)
         {
             case PostSorting.CreateDesc:
@@ -225,6 +230,7 @@ public class CommunityService : ICommunityService
             current = page
         };
 
+        //Проверка что текущая страница не превышает колво доступных страниц
         if (pageInfo.current > pageInfo.count)
         {
             throw new ValidationAccessException("current page must be less than page count");
@@ -255,12 +261,13 @@ public class CommunityService : ICommunityService
             .Include(c => c.communityUsers)
             .FirstOrDefaultAsync(c => c.id == communityId);
 
+        //Проверка существования сообщества в бд
         if (community == null)
             throw new KeyNotFoundException($"Community with id={communityId} not found");
         
         var existingUser = await _context.CommunityUsers
             .FirstOrDefaultAsync(cu => cu.communityId == communityId && cu.userId == parsedId);
-
+        //Проверка что пользователь с ролью администратора находится в сообществе
         if (existingUser == null || !existingUser.communityRoles.Contains(CommunityRole.Administrator))
         {
             throw new ForbiddenAccessException($"User Id={parsedId} is not able to post in community Id={communityId}");
@@ -285,6 +292,7 @@ public class CommunityService : ICommunityService
             .Where(t => model.tags.Contains(t.id))
             .ToListAsync();
 
+        //Проверка существования тегов в бд
         var missingTagIds = model.tags.Except(existingTags.Select(t => t.id)).ToList();
         if (missingTagIds.Any())
         {
@@ -314,7 +322,8 @@ public class CommunityService : ICommunityService
 
         if (userdb == null)
             throw new KeyNotFoundException("User not found");
-
+        
+        //Проверка существования сообщества в бд
         var community = await _context.Communities
             .Include(c => c.communityUsers)
             .FirstOrDefaultAsync(c => c.id == communityId);
@@ -322,6 +331,7 @@ public class CommunityService : ICommunityService
         if (community == null)
             throw new KeyNotFoundException($"Community with id={communityId} not found");
 
+        //Получение ролей пользователя
         var userRoles = await _context.CommunityUsers
             .Where(cu => cu.communityId == communityId && cu.userId == parsedId)
             .Select(cu => cu.communityRoles)
@@ -351,12 +361,13 @@ public class CommunityService : ICommunityService
         if (userdb == null)
             throw new KeyNotFoundException("User not found");
 
+        //Проверка существования сообщества в бд
         var community = await _context.Communities
             .FirstOrDefaultAsync(c => c.id == communityId);
 
         if (community == null)
             throw new KeyNotFoundException($"Community with id={communityId} not found");
-
+        //Проверка подписан ли пользователь на данный момент на сообщество
         var existingUser = await _context.CommunityUsers
             .FirstOrDefaultAsync(cu => cu.communityId == communityId && cu.userId == parsedId);
 
@@ -398,12 +409,14 @@ public class CommunityService : ICommunityService
         if (userdb == null)
             throw new KeyNotFoundException("User not found");
 
+        //Проверка существования сообщества в бд
         var community = await _context.Communities
             .FirstOrDefaultAsync(c => c.id == communityId);
 
         if (community == null)
             throw new KeyNotFoundException($"Community with id={communityId} not found");
 
+        //Проверка подписан ли пользователь на данный момент на сообщество
         var existingUser = await _context.CommunityUsers
             .FirstOrDefaultAsync(cu => cu.communityId == communityId && cu.userId == parsedId);
 

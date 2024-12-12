@@ -33,7 +33,14 @@ public async Task<ActionResult> AddCommentToPost(Guid postId, CreateCommentDto m
     {
         throw new UnauthorizedAccessException();
     }
+        
+    var userdb = await _context.Users
+        .FirstOrDefaultAsync(d => d.id == parsedId);
 
+    if (userdb == null)
+        throw new KeyNotFoundException("User not found");
+    
+    //Проверка существует ли пост в бд
     var post = await _context.Posts
         .Include(p => p.community)
         .FirstOrDefaultAsync(p => p.id == postId);
@@ -43,8 +50,10 @@ public async Task<ActionResult> AddCommentToPost(Guid postId, CreateCommentDto m
 
     var community = post.community;
 
+    //Проверка состоит ли пост в закрытом сообществе
     if (community != null && community.isClosed)
     {
+        //Проверка состоит ли пользователь в сообществе
         var isMember = await _context.CommunityUsers
             .AnyAsync(cu => cu.communityId == community.id && cu.userId == parsedId);
 
@@ -57,12 +66,13 @@ public async Task<ActionResult> AddCommentToPost(Guid postId, CreateCommentDto m
     Comment? parentComment = null;
     if (model.parentId != null)
     {
+        //Проверка на наличие prentComment в бд
         parentComment = await _context.Comments
             .FirstOrDefaultAsync(c => c.id == model.parentId.Value);
 
         if (parentComment == null)
             throw new KeyNotFoundException("Parent comment not found");
-
+        //Проверка относится ли parentComment к тому же посту
         if (parentComment.postId != postId)
             throw new ValidationAccessException("Parent comment is attached to another post");
     }
@@ -152,7 +162,13 @@ public async Task<ActionResult> AddCommentToPost(Guid postId, CreateCommentDto m
             throw new UnauthorizedAccessException();
         }
         
+        var userdb = await _context.Users
+            .FirstOrDefaultAsync(d => d.id == parsedId);
 
+        if (userdb == null)
+            throw new KeyNotFoundException("User not found");
+        
+        //Проверка существует ли такой комментарий в бд
         var comment = await _context.Comments
             .Include(c => c.replies)
             .Include(c => c.post)
@@ -165,9 +181,10 @@ public async Task<ActionResult> AddCommentToPost(Guid postId, CreateCommentDto m
         }
 
         var community = comment.post?.community;
-
+        //Проверка находится ли пост к которому относится комментарий в закрытом сообществе
         if (community != null && community.isClosed)
         {
+            //Проверка чтобы пользователь был подписан на сообщество
             var isMember = await _context.CommunityUsers
                 .AnyAsync(cu => cu.communityId == community.id && cu.userId == parsedId);
 
@@ -177,11 +194,13 @@ public async Task<ActionResult> AddCommentToPost(Guid postId, CreateCommentDto m
             }
         }
         
+        //Проверка является ли пользователем автором комментария
         if (comment.authorId != parsedId)
         {
             throw new ForbiddenAccessException("Not enough rights to delete this comment");
         }
         
+        //Проверка имеются ли ответы на комментарий
         if (comment.replies.Any())
         {
             comment.content = "";
@@ -205,7 +224,14 @@ public async Task<ActionResult> AddCommentToPost(Guid postId, CreateCommentDto m
         {
             throw new UnauthorizedAccessException();
         }
+        
+        var userdb = await _context.Users
+            .FirstOrDefaultAsync(d => d.id == parsedId);
+
+        if (userdb == null)
+            throw new KeyNotFoundException("User not found");
     
+        //Проверка существует ли комментарий бд
         var comment = await _context.Comments
             .Include(c => c.post)
             .ThenInclude(p => p.community)
@@ -216,10 +242,12 @@ public async Task<ActionResult> AddCommentToPost(Guid postId, CreateCommentDto m
             throw new KeyNotFoundException($"Comment Id={commentId} not found");
         }
         
+        //Проверка находится ли пост к которому относится комментарий в закрытом сообществе
         var community = comment.post?.community;
 
         if (community != null && community.isClosed)
         {
+            //Проверка чтобы пользователь был подписан на сообщество
             var isMember = await _context.CommunityUsers
                 .AnyAsync(cu => cu.communityId == community.id && cu.userId == parsedId);
 
@@ -229,6 +257,7 @@ public async Task<ActionResult> AddCommentToPost(Guid postId, CreateCommentDto m
             }
         }
 
+        //Проверка пользователь является ли автором комментария
         if (comment.authorId != parsedId)
         {
             throw new ForbiddenAccessException("Not enough rights to edit this comment");

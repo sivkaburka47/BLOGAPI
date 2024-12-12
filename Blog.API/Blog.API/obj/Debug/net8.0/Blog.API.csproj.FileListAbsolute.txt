@@ -25,7 +25,6 @@
 /Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/obj/Debug/net8.0/Blog.API.csproj.CoreCompileInputs.cache
 /Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/obj/Debug/net8.0/Blog.API.MvcApplicationPartsAssemblyInfo.cs
 /Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/obj/Debug/net8.0/Blog.API.MvcApplicationPartsAssemblyInfo.cache
-/Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/obj/Debug/net8.0/Blog.API.sourcelink.json
 /Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/obj/Debug/net8.0/staticwebassets.build.json
 /Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/obj/Debug/net8.0/staticwebassets.development.json
 /Users/stanislavdeinekin/Documents/GitHub/BLOGAPI/Blog.API/Blog.API/obj/Debug/net8.0/staticwebassets/msbuild.Blog.API.Microsoft.AspNetCore.StaticWebAssets.props

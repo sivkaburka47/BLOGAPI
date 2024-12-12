@@ -42,7 +42,7 @@ namespace Blog.API.Controllers
             return Ok(postId);
         }
 
-        [Authorize]
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<PostFullDto>> GetConcretePost( Guid id)
         {

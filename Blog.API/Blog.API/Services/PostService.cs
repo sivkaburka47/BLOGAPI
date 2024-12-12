@@ -52,7 +52,8 @@ namespace Blog.API.Services
         {
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             Guid? parsedId = null;
-
+            
+            //проверка авторизован ли пользователь
             if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parsed))
             {
                 parsedId = parsed;
@@ -60,13 +61,13 @@ namespace Blog.API.Services
                 if (userdb == null)
                     throw new KeyNotFoundException("User not found");
             }
-
-
+            
+            //Валидация страницы и ее размера
             if (page < 1 || size < 1)
             {
                 throw new ValidationAccessException("page or size must be greater than 0");
             }
-
+            //Проверка существования тегов в бд
             if (tags != null && tags.Any())
             {
                 foreach (var tagId in tags)
@@ -86,14 +87,15 @@ namespace Blog.API.Services
                 .Include(p => p.community)
                 .ThenInclude(c => c.communityUsers)
                 .AsQueryable();
-
+            
+            //Фильтр по автору если он не пуст
             if (!string.IsNullOrEmpty(author))
             {
                 query = query.Include(p => p.author)
                     .Where(post => post.author.fullName.Contains(author));
             }
-
-
+            
+            //Фильтр по времени чтения
             if (min > 0)
             {
                 query = query.Where(post => post.readingTime >= min);
@@ -103,12 +105,14 @@ namespace Blog.API.Services
             {
                 query = query.Where(post => post.readingTime <= max);
             }
-
+            
+            //Фильтр по тегам
             if (tags != null && tags.Any())
             {
                 query = query.Where(post => post.tags.Any(tag => tags.Contains(tag.id)));
             }
             
+            //Фильтр по сообществам
             if (parsedId != null)
             {
                 if (onlyMyCommunities)
@@ -126,9 +130,11 @@ namespace Blog.API.Services
             }
             else
             {
+                //Если пользователь не авторизован
                 query = query.Where(post => post.community == null || !post.community.isClosed);
             }
-
+            
+            //Сортировка выбранная пользователем
             switch (sorting)
             {
                 case PostSorting.CreateDesc:
@@ -175,7 +181,7 @@ namespace Blog.API.Services
                     name = tag.name
                 }).ToList()
             }).ToList();
-
+            
             if (parsedId == null)
             {
                 foreach (var post in postsdb)
@@ -191,7 +197,9 @@ namespace Blog.API.Services
                 count = (int)Math.Ceiling((double)totalItems / size),
                 current = page
             };
+            
 
+            //Проверка что текущая страница не превышает колво доступных страниц
             if (pageInfo.current > pageInfo.count)
             {
                 throw new ValidationAccessException("current page must be less than page count");
@@ -218,6 +226,11 @@ namespace Blog.API.Services
             if (userdb == null)
                 throw new KeyNotFoundException("User not found");
 
+            if (model.readingTime <= 0)
+            {
+                throw new ValidationAccessException("ReadingTime must be grater than 0.");
+            }
+            
             var post = new Post
             {
                 createTime = DateTime.UtcNow,
@@ -236,6 +249,7 @@ namespace Blog.API.Services
                 .Where(t => model.tags.Contains(t.id))
                 .ToListAsync();
 
+            //Нахождение отсутствующих тегов в бд
             var missingTagIds = model.tags.Except(existingTags.Select(t => t.id)).ToList();
             if (missingTagIds.Any())
             {
@@ -274,12 +288,14 @@ namespace Blog.API.Services
                 .Include(p => p.comments)
                 .ThenInclude(c => c.author)
                 .FirstOrDefaultAsync(p => p.id == postId);
-
+            
+            //Проверка что пост существует в бд
             if (post == null)
             {
                 throw new KeyNotFoundException($"Post with id {postId} not found.");
             }
 
+            //Проверка на права пользователя
             if (post.community != null && post.community.isClosed)
             {
                 var isMember = post.community.communityUsers.Any(cu => cu.userId == parsedId);
@@ -353,11 +369,13 @@ namespace Blog.API.Services
                 .ThenInclude(c => c.communityUsers)
                 .FirstOrDefaultAsync(p => p.id == postId);
 
+            //Проверка что такой пост существует
             if (post == null)
             {
                 throw new KeyNotFoundException($"Post with id {postId} not found.");
             }
 
+            //Проверка прав пользователя
             if (post.community != null && post.community.isClosed)
             {
                 var isMember = post.community.communityUsers.Any(cu => cu.userId == parsedId);
@@ -367,6 +385,7 @@ namespace Blog.API.Services
                         $"Access to closed community with id={post.community.id} is forbidden");
             }
 
+            //Проверка что лайк уже стоит на посте
             var existingLike = post.likes.FirstOrDefault(like => like.userId == parsedId);
 
             if (existingLike != null)
@@ -405,12 +424,14 @@ namespace Blog.API.Services
                 .Include(p => p.community)
                 .ThenInclude(c => c.communityUsers)
                 .FirstOrDefaultAsync(p => p.id == postId);
-
+            
+            //Проверка существует ли пост в бд
             if (post == null)
             {
                 throw new KeyNotFoundException($"Post with id {postId} not found.");
             }
 
+            //Проверка прав пользователя
             if (post.community != null && post.community.isClosed)
             {
                 var isMember = post.community.communityUsers.Any(cu => cu.userId == parsedId);
@@ -420,6 +441,7 @@ namespace Blog.API.Services
                         $"Access to closed community with id={post.community.id} is forbidden");
             }
 
+            //Проверка что лайк уже стоит на посте
             var existingLike = post.likes.FirstOrDefault(like => like.userId == parsedId);
 
             if (existingLike == null)

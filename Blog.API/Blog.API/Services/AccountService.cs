@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Blog.API.Data;
 using Blog.API.Infrastracture;
 using Blog.API.Middleware;
@@ -40,10 +41,46 @@ namespace Blog.API.Services
             _tokenBlackListService = tokenBlackListService;
         }
         
+        private bool IsValidPassword(string password)
+        {
+            if (string.IsNullOrEmpty(password))
+                return false;
+            
+            var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$");
+            return passwordRegex.IsMatch(password);
+        }
+        
+        private bool IsValidEmail(string email)
+        {
+            if (string.IsNullOrEmpty(email))
+                return false;
+            
+            var emailRegex = new Regex(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+            return emailRegex.IsMatch(email);
+        }
+
         public async Task<TokenResponse> RegisterAsync(UserRegisterModel model)
         {
+            //Проверка email
+            if (!IsValidEmail(model.email))
+            {
+                throw new ValidationAccessException("Invalid email format");
+            }
+            
+            //Проверка даты рождения
+            if (model.birthDate < new DateTime(1900, 1, 1) || model.birthDate > DateTime.UtcNow)
+            {
+                throw new ValidationAccessException("Birth date must be between 1900 and the current date.");
+            }
+            
+            //Проверка пароля: длина минимум 6, минимум одна строчная, одна заглавная буква и одна цифра
+            if (!IsValidPassword(model.password))
+            {
+                throw new ValidationAccessException("Password must be at least 6 characters long, include at least one lowercase letter, one uppercase letter, and one digit.");
+            }
             var hashedPassword = _passwordHasher.Generate(model.password);
             
+            //Проверка существует ли аккаунты с таким же email и phoneNumber в бд
             var exists = await _context.Users
                 .AsNoTracking()
                 .AnyAsync(u => u.email == model.email || u.phoneNumber == model.phoneNumber);
@@ -71,6 +108,7 @@ namespace Blog.API.Services
         
         public async Task<TokenResponse> LoginAsync(LoginCredentials model)
         {
+            //ПРоверка существует ли аккаунт с таким email
             var user = await _context.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.email == model.email);
@@ -80,6 +118,7 @@ namespace Blog.API.Services
                 throw new ValidationAccessException("Wrong Email Or Password");
             }
 
+            //Проверяем верный ли пароль
             var result = _passwordHasher.Verify(model.password, user.passwordHash);
 
             if (!result)
@@ -100,7 +139,8 @@ namespace Blog.API.Services
             {
                 throw new UnauthorizedAccessException();
             }
-
+            
+            //Добавляет токен в блэк лист
             if (!string.IsNullOrEmpty(token))
             { 
                 await _tokenBlackListService.AddTokenToBlackList(token);
@@ -156,9 +196,18 @@ namespace Blog.API.Services
             
             if (userdb == null)
                 throw new KeyNotFoundException("user not found"); 
-
-            if (userEdit.birthDate > DateTime.UtcNow)
-                throw new ValidationAccessException("incorrect date");
+            
+            //Проверка email
+            if (!IsValidEmail(userEdit.email))
+            {
+                throw new ValidationAccessException("Invalid email format");
+            }
+            
+            //Проверка даты рождения
+            if (userEdit.birthDate < new DateTime(1900, 1, 1) || userEdit.birthDate > DateTime.UtcNow)
+            {
+                throw new ValidationAccessException("Birth date must be between 1900 and the current date.");
+            }
             
             var exists = await _context.Users
                 .AsNoTracking()
