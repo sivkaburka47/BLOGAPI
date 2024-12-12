@@ -38,14 +38,6 @@ namespace Blog.API.Controllers
             return Ok(response);
         }
         
-        [AllowAnonymous]
-        [HttpGet("SendEmail")]
-        public async Task<ActionResult<string>> GetAddressChain(string email, string subject, string body)
-        {
-            await _emailSender.SendEmailAsync(email, subject, body);
-            return Ok("Sent");
-
-        }
         
     }
 }

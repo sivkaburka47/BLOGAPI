@@ -45,7 +45,7 @@ namespace Blog.API.Controllers
             return Ok(communityList);
         }
         
-        [Authorize]
+        [AllowAnonymous]
         [HttpGet("{id}/post")]
         public async Task<ActionResult<PostPagedListDto>> GetList(
             Guid id,
